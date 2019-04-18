@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>me212_robot</name>
+  <name>me212bot</name>
   <version>0.0.0</version>
   <description>The robot package</description>
 
@@ -12,7 +12,7 @@
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
-  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+  <!--   BSD, MIT, Boost Sofwvare License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>TODO</license>
 
 

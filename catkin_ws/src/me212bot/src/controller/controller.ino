@@ -3,7 +3,6 @@
 // Fangzhou Xia       - xiafz    _ mit _ edu,    Sept 2015
 // Peter KT Yu        - peterkty _ mit _ edu,    Sept 2016
 // Ryan Fish          - fishr    _ mit _ edu,    Sept 2016
-// Jerry Ng           - jerryng  _ mit _ edu,    Feb 2019
 
 #include "Arduino.h"
 #include "helper.h"
@@ -12,17 +11,15 @@ EncoderMeasurement  encoder(26);      // encoder handler class, set the motor ty
 RobotPose           robotPose;        // robot position and orientation calculation class
 PIController        wheelVelCtrl;     // velocity PI controller class
 SerialComm          serialComm;       // serial communication class
-PathPlanner         pathPlanner;      // path planner
 unsigned long       prevTime = 0;
 
-boolean usePathPlanner = false;
+boolean usePathPlanner = true;
 
 void setup() {
     Serial.begin(115200);       // initialize Serial Communication
     encoder.init();  // connect with encoder
     wheelVelCtrl.init();        // connect with motor
     delay(1e3);                 // delay 1000 ms so the robot doesn't drive off without you
-    robotPose.pathDistance = 0;
 }
 
 void loop() {
@@ -35,25 +32,15 @@ void loop() {
         encoder.update(); 
 
         // 2. Update position
-        robotPose.update(encoder.dPhiL, encoder.dPhiR); 
+        robotPose.update(encoder.dThetaL, encoder.dThetaR); 
 
         // 3. Send odometry through serial communication
         serialComm.send(robotPose); 
-        
-        // 4. Compute R/L wheel velocities from robot delta pose command
-        if (!usePathPlanner) {
-            // 4.1 a fixed wheel speed for testing odometry
-            pathPlanner.desiredWV_R = 0.2;   
-            pathPlanner.desiredWV_L = 0.2;
-        }
-        else{
-            // 4.2 compute wheel speed from using a navigation policy
-            pathPlanner.navigateTrajU(robotPose); 
-        }
+        serialComm.receiveSerialData();
 
-        // 5. Send the velocity command to wheel velocity controller
-        wheelVelCtrl.doPIControl("Left",  pathPlanner.desiredWV_L, encoder.v_L); 
-        wheelVelCtrl.doPIControl("Right", pathPlanner.desiredWV_R, encoder.v_R);
+        // 4. Send the velocity command to wheel velocity controller
+        wheelVelCtrl.doPIControl("Left",  serialComm.desiredWV_L, encoder.v_L); 
+        wheelVelCtrl.doPIControl("Right", serialComm.desiredWV_R, encoder.v_R);
 
         prevTime = currentTime; // update time
     } 

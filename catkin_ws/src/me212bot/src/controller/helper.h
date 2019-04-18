@@ -3,7 +3,6 @@
 // Fangzhou Xia       - xiafz    _ mit _ edu,    Sept 2015
 // Peter KT Yu        - peterkty _ mit _ edu,    Sept 2016
 // Ryan Fish          - fishr    _ mit _ edu,    Sept 2016
-// Jerry Ng           - jerryng  _ mit _ edu,    Feb 2019
 
 #ifndef ArduinoLab2Helper_h
 #define ArduinoLab2Helper_h
@@ -27,7 +26,7 @@ class EncoderMeasurement {
   public: 
     signed long encoder1CountPrev, encoder2CountPrev;  // encoder 1 and 2 counts in ticks for the previous cycle
     float v_L, v_R;                                    // left and right wheel velocity in m/s
-    float dPhiL, dPhiR;
+    float dThetaL, dThetaR;
     float maxMV;
     
     EncoderMeasurement(int motor_type);                // motor_type: 26 or 53
@@ -64,10 +63,11 @@ class RobotPose {
     float pathDistance;  // trajectory path distance in meters
     
     RobotPose():
-      Th(0), 
+      Th(0),
       X(0), Y(0), pathDistance(0) {}
       
-    void update(float dPhiL, float dPhiR); // update the odometry from delta in R and L wheel positions
+    void update(float dThetaL, float dThetaR); // update the odometry from delta in R and L wheel positions
+    
 };
 
 class PIController {
@@ -85,17 +85,31 @@ class PIController {
 
 class SerialComm {
   public:
-    SerialComm(){
+    float desiredWV_R, desiredWV_L;
+  
+    SerialComm(): desiredWV_R(0), desiredWV_L(0){
         prevSerialTime = micros();
+    }
+    void receiveSerialData(){
+        if (Serial.available() > 0) {
+            String commandString = Serial.readStringUntil('\n');  // read a line
+            float command[2];
+            for (int i = 0, indexPointer = 0; indexPointer != -1 ; i++ ) {
+                indexPointer = commandString.indexOf(',');
+                String tempString = commandString.substring(0, indexPointer);
+                command[i] = tempString.toFloat();
+                commandString = commandString.substring(indexPointer+1);
+            }
+            desiredWV_R = command[0];
+            desiredWV_L = command[1];
+        }
     }
     void send(const RobotPose& robotPose) {
         unsigned long current_time = micros();
         if (current_time - prevSerialTime >= SERIAL_PERIOD_MICROS) {
-            Serial.print("#,");
             Serial.print(robotPose.X, 6);   Serial.print(",");  //X 
             Serial.print(robotPose.Y, 6);   Serial.print(",");  //Y 
-            Serial.print(robotPose.Th);                         //Th
-            Serial.print(",#\n");
+            Serial.println(robotPose.Th);                       //Th
             prevSerialTime = current_time;
         }
     }
@@ -103,20 +117,6 @@ class SerialComm {
     unsigned long prevSerialTime;
 };
 
-class PathPlanner {
-  public:
-    float desiredWV_L;
-    float desiredWV_R;
-    
-    PathPlanner(): currentStage(1), desiredWV_L(0), desiredWV_R(0) {}
-
-    void navigateTrajU(const RobotPose& robotPose);
-    void updateDesiredV(float robotVel, float K);
-    
-  private: 
-    int currentStage;
-    unsigned long prevSerialTime;
-};
 
 #endif
 

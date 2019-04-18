@@ -3,7 +3,6 @@
 // Fangzhou Xia       - xiafz    _ mit _ edu,    Sept 2015
 // Peter KT Yu        - peterkty _ mit _ edu,    Sept 2016
 // Ryan Fish          - fishr    _ mit _ edu,    Sept 2016
-// Jerry Ng           - jerryng  _ mit _ edu,    Feb 2019
 
 #include "helper.h"
 
@@ -34,7 +33,7 @@ EncoderMeasurement::EncoderMeasurement(int motor_type):
 
 void EncoderMeasurement::update() {
     float encoder1Count = readEncoder(1);
-    float encoder2Count = -1*readEncoder(2);
+    float encoder2Count = -1 * readEncoder(2);
     float dEncoder1 = (encoder1Count - encoder1CountPrev);
     float dEncoder2 = (encoder2Count - encoder2CountPrev);
     
@@ -43,8 +42,8 @@ void EncoderMeasurement::update() {
     float dphi2 = (dEncoder2 * enc2rad);
     
     //for encoder index and motor position switching (Right is 1, Left is 2)
-    dPhiR = dphi1;
-    dPhiL = dphi2;
+    dThetaR = dphi1;
+    dThetaL = dphi2;
     
     float dWheel1 = (dEncoder1 * enc2wheel);
     float dWheel2 = (dEncoder2 * enc2wheel);
@@ -59,68 +58,23 @@ void EncoderMeasurement::update() {
 }
 
 //RobotPose Class function implementation
-void RobotPose::update(float dPhiL, float dPhiR) {
+void RobotPose::update(float dThetaL, float dThetaR) {
     // orientation angle theta increment in radians
-    float dTh;
+    float dTh = (r / (2.0 * b)) * (dThetaR - dThetaL);
+    
+    Th += dTh;
     
     // robot X, Y position increment in meters
-    float dX, dY;
+    float dX = (r / 2.0) * cos(Th) * (dThetaR + dThetaL); 
+    float dY = (r / 2.0) * sin(Th) * (dThetaR + dThetaL);
     
-    // MODIFY CODE BELOW TO SET THE CORRECT VALUES
-    //   Relavent constants: r, b
-    //   Relavent function: sqrt()
-    //   Use the equations referenced in the handout to set these values.
+    X += dX;
+    Y += dY;
     
-    dTh = r/(2*b) *(dPhiR - dPhiL);
-    Th = Th + dTh;
-    
-    dX = r/2 * (cos(Th)*dPhiR + cos(Th)*dPhiL);
-    dY = r/2 * (sin(Th)*dPhiR + sin(Th)*dPhiL);
-    
-    X = X + dX;
-    Y = Y + dY;
-
-    pathDistance = pathDistance + sqrt(dX*dX + dY*dY);
-}
-
-//PathPlanner Class function implementation
-void PathPlanner::navigateTrajU(const RobotPose & robotPose) {
-    // Use a series of IF statements to break up the path into steps.
-    // Check whether you are ready to move forward into the next stage of the path
-    
-    // an example for the first straight line has been provided:
-    // Straight line forward
-    if (robotPose.pathDistance < 1.0) { 
-        float robotVel = .2, K = 0;
-        updateDesiredV(robotVel, K);
-    } 
-    // Hemicircle
-    else if ((robotPose.pathDistance > 1.0)&& (robotPose.pathDistance < (1+.25*PI))){
-        float robotVel = .2, K = 1/0.25;
-        updateDesiredV(robotVel, K);
-    }
-    // Straight line back
-    else if((robotPose.pathDistance > robotPose.pathDistance < (1+.25*PI)) && (robotPose.pathDistance < (2 + .25*PI))){
-        float robotVel = .2, K = 0;
-        updateDesiredV(robotVel, K);
-    }
-    // Stop at the end
-    else if(robotPose.pathDistance > (2 + .25*PI)){
-      float robotVel = 0, K = 0;
-      updateDesiredV(robotVel, K);
-    }
-}
-
-void PathPlanner::updateDesiredV(float robotVel, float K) {
-    // command wheel velocities based on K and average forwardVel
-    
-    // MODIFY CODE BELOW TO SET THE CORRECT VALUES
-    desiredWV_L = robotVel - K *b * robotVel;
-    desiredWV_R = 2*robotVel - desiredWV_L ;
+    pathDistance += sqrt(dX * dX + dY * dY);
 }
 
 // PIController Class function implementation (not the focus of this lab)
-
 void PIController::doPIControl(String side, float desV, float currV) {
     float error = desV - currV;
 
