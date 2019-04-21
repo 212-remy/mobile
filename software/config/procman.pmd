@@ -9,27 +9,22 @@ cmd "1-frames" {
     host = "localhost";
 }
 
-cmd "2-rviz" {
-    exec = "roslaunch me212bot viz.launch";
-    host = "localhost";
-}
-
-cmd "3-kinect" {
+cmd "2-kinect" {
     exec = "roslaunch freenect_launch freenect.launch depth_registration:=true";
     host = "localhost";
 }
 
-cmd "4-apriltag" {
+cmd "3-apriltag" {
     exec = "roslaunch apriltags apriltags.launch";
     host = "localhost";
 }
 
-cmd "5-robot" {
+cmd "4-robot" {
     exec = "rosrun me212bot me212bot_node.py";
     host = "localhost";
 }
 
-cmd "6-navigation" {
+cmd "5-navigation" {
     exec = "rosrun me212bot apriltag_navi.py";
     host = "localhost";
 }
@@ -39,8 +34,7 @@ script "run" {
     wait ms 1000;
     start cmd "1-frames";
     wait ms 500;
-    start cmd "2-rviz";
-    start cmd "3-kinect";
-    start cmd "4-apriltag";
-    start cmd "5-robot";
+    start cmd "2-kinect";
+    start cmd "3-apriltag";
+    start cmd "4-robot";
 }

@@ -108,42 +108,42 @@ def navi_loop():
 
 
         
-        # if arrived or (np.linalg.norm( pos_delta ) < 0.08 and np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.05) :
-        #     print 'Case 2.1  Stop'
-        #     wcv.desiredWV_R = 0  
-        #     wcv.desiredWV_L = 0
-        #     arrived = True
-        # elif np.linalg.norm( pos_delta ) < 0.08:
-        #     arrived_position = True
-        #     if diffrad(robot_yaw, target_pose2d[2]) > 0:
-        #         print 'Case 2.2.1  Turn right slowly'      
-        #         wcv.desiredWV_R = -0.05 
-        #         wcv.desiredWV_L = 0.05
-        #     else:
-        #         print 'Case 2.2.2  Turn left slowly'
-        #         wcv.desiredWV_R = 0.05  
-        #         wcv.desiredWV_L = -0.05
-        # elif arrived_position or np.fabs( heading_err_cross ) < 0.2:
-        #     print 'Case 2.3  Straight forward'  
-        #     wcv.desiredWV_R = 0.1
-        #     wcv.desiredWV_L = 0.1
-        # else:
-        #     if heading_err_cross < 0:
-        #         print 'Case 2.4.1  Turn right'
-        #         wcv.desiredWV_R = -0.1
-        #         wcv.desiredWV_L = 0.1
-        #     else:
-        #         print 'Case 2.4.2  Turn left'
-        #         wcv.desiredWV_R = 0.1
-        #         wcv.desiredWV_L = -0.1
+        if arrived or (np.linalg.norm( pos_delta ) < 0.08 and np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.05) :
+            print 'Case 2.1  Stop'
+            wcv.desiredWV_R = 0  
+            wcv.desiredWV_L = 0
+            arrived = True
+        elif np.linalg.norm( pos_delta ) < 0.08:
+            arrived_position = True
+            if diffrad(robot_yaw, target_pose2d[2]) > 0:
+                print 'Case 2.2.1  Turn right slowly'      
+                wcv.desiredWV_R = -0.05 
+                wcv.desiredWV_L = 0.05
+            else:
+                print 'Case 2.2.2  Turn left slowly'
+                wcv.desiredWV_R = 0.05  
+                wcv.desiredWV_L = -0.05
+        elif arrived_position or np.fabs( heading_err_cross ) < 0.2:
+            print 'Case 2.3  Straight forward'  
+            wcv.desiredWV_R = 0.1
+            wcv.desiredWV_L = 0.1
+        else:
+            if heading_err_cross < 0:
+                print 'Case 2.4.1  Turn right'
+                wcv.desiredWV_R = -0.1
+                wcv.desiredWV_L = 0.1
+            else:
+                print 'Case 2.4.2  Turn left'
+                wcv.desiredWV_R = 0.1
+                wcv.desiredWV_L = -0.1
 
         # 2-axis Proportional Control Implementation
-        dX = np.linalg.norm(pos_delta)
-        dTheta = heading_err_cross
-        vel_desired =  -(0.1 - dX)*0.25
-        angVel_desired = (0 - dTheta)*0.25
-        wcv.desiredWV_R = vel_desired - angVel_desired
-        wcv.desiredWV_L = vel_desired + angVel_desired
+        #dX = np.linalg.norm(pos_delta)
+        #dTheta = heading_err_cross
+        #vel_desired =  -(0.1 - dX)*0.25
+        #angVel_desired = (0 - dTheta)*0.25
+        #wcv.desiredWV_R = vel_desired - angVel_desired
+        #wcv.desiredWV_L = vel_desired + angVel_desired
 
 
                 
