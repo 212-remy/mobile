@@ -42,7 +42,7 @@ def read_odometry_loop():
         # get a line of string that represent current odometry from serial
         serialData = serialComm.readline()
         
-        # split the string e.g. "0.1,0.2,0.1" with cammas
+        # split the string e.g. "0.1,0.2,0.1" with commas
         splitData = serialData.split(',')
         
         # parse the 3 split strings into 3 floats

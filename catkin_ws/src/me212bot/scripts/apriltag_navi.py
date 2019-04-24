@@ -24,7 +24,7 @@ def main():
     
     rospy.sleep(1)
     
-    constant_vel = False
+    constant_vel = True
     if constant_vel:
         thread = threading.Thread(target = constant_vel_loop)
     else:
@@ -35,16 +35,17 @@ def main():
 
 ## sending constant velocity (Need to modify for Task 1)
 def constant_vel_loop():
+    print 'using constant loop'
     velcmd_pub = rospy.Publisher('/cmdvel', WheelCmdVel, queue_size = 1)
     rate = rospy.Rate(100) # 100hz
     
     while not rospy.is_shutdown() :
         wcv = WheelCmdVel()
-        wcv.desiredWV_R = 0.1
-        wcv.desiredWV_L = 0.2
+        wcv.desiredWV_R = 0
+        wcv.desiredWV_L = 0
         
         velcmd_pub.publish(wcv) 
-        
+        print wcv.desiredWV_R, wcv.desiredWV_L
         rate.sleep() 
 
 ## apriltag msg handling function (Need to modify for Task 2)
@@ -76,8 +77,8 @@ def navi_loop():
         
         if robot_pose3d is None:
             print '1. Tag not in view, Stop'
-            wcv.desiredWV_R = 0  # right, left
-            wcv.desiredWV_L = 0
+            wcv.desiredWV_R = 0.0  # right, left
+            wcv.desiredWV_L = 0.0
             velcmd_pub.publish(wcv)  
             rate.sleep()
             continue
@@ -110,8 +111,8 @@ def navi_loop():
         
         if arrived or (np.linalg.norm( pos_delta ) < 0.08 and np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.05) :
             print 'Case 2.1  Stop'
-            wcv.desiredWV_R = 0  
-            wcv.desiredWV_L = 0
+            wcv.desiredWV_R = 0.0  
+            wcv.desiredWV_L = 0.0
             arrived = True
         elif np.linalg.norm( pos_delta ) < 0.08:
             arrived_position = True
@@ -146,7 +147,7 @@ def navi_loop():
         #wcv.desiredWV_L = vel_desired + angVel_desired
 
 
-                
+        print wcv.desiredWV_R, wcv.desiredWV_L
         velcmd_pub.publish(wcv)  
         
         rate.sleep()
