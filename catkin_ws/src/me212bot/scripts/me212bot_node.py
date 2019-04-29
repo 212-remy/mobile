@@ -18,11 +18,12 @@ serialComm = serial.Serial('/dev/ttyACM0', 115200, timeout = 5)
 def main():
     rospy.init_node('me212bot', anonymous=True)
     
-    odometry_thread = threading.Thread(target = read_odometry_loop)
-    odometry_thread.start()
-    
     ## 1. Initialize a subscriber
     rospy.Subscriber('/cmdvel', WheelCmdVel, cmdvel_callback)
+    
+    ## 2. Initialize a publisher
+    odometry_thread = threading.Thread(target = read_odometry_loop)
+    odometry_thread.start()
     
     rospy.spin()
 
@@ -37,6 +38,7 @@ def cmdvel_callback(msg):
 
 # read_odometry_loop() is for reading odometry from Arduino and publish to rostopic. (No need to modify)
 def read_odometry_loop():
+    odom_pub = rospy.Publisher('/odom', Pose, queue_size = 1)
     prevtime = rospy.Time.now()
     while not rospy.is_shutdown():
         # get a line of string that represent current odometry from serial
@@ -60,12 +62,15 @@ def read_odometry_loop():
             odom = Pose()
             odom.position.x = x
             odom.position.y = y
-            
             qtuple = tfm.quaternion_from_euler(0, 0, theta)
+            #print 'after quaternion conversion'
             odom.orientation = Quaternion(qtuple[0], qtuple[1], qtuple[2], qtuple[3])
-        except:
+            odom_pub.publish(odom)
+            
+        except Exception as e:
             # print out msg if there is an error parsing a serial msg
             print 'Cannot parse', splitData
+            print e
             
 
 if __name__=='__main__':
