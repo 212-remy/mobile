@@ -1,2 +1,2 @@
-apriltags:me212bot
+apriltags:me212bot:me212cv
 -DCATKIN_DEVEL_PREFIX=/home/robot/mobile/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/robot/mobile/catkin_ws/install -G Unix Makefiles

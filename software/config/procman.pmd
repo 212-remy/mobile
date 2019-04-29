@@ -19,15 +19,22 @@ cmd "3-apriltag" {
     host = "localhost";
 }
 
-cmd "4-robot" {
+cmd "4-object_detection" {
+    exec = "rosrun me212cv object_detection.py";
+    host = "localhost";
+}
+
+cmd "5-robot" {
     exec = "rosrun me212bot me212bot_node.py";
     host = "localhost";
 }
 
-cmd "5-navigation" {
+cmd "6-navigation" {
     exec = "rosrun me212bot apriltag_navi.py";
     host = "localhost";
 }
+
+
 
 script "run" {
     start cmd "0-roscore";
@@ -36,5 +43,6 @@ script "run" {
     wait ms 500;
     start cmd "2-kinect";
     start cmd "3-apriltag";
-    start cmd "4-robot";
+    start cmd "4-object_detection";
+    start cmd "5-robot";
 }

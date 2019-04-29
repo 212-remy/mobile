@@ -33,7 +33,10 @@ if(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
 endif()
 
 if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/me212bot/msg" TYPE FILE FILES "/home/robot/mobile/catkin_ws/src/me212bot/msg/WheelCmdVel.msg")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/me212bot/msg" TYPE FILE FILES
+    "/home/robot/mobile/catkin_ws/src/me212bot/msg/WheelCmdVel.msg"
+    "/home/robot/mobile/catkin_ws/src/me212bot/msg/mobile_step.msg"
+    )
 endif()
 
 if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")

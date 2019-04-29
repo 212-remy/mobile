@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/me212bot_generate_messages_nodejs"
+  "/home/robot/mobile/catkin_ws/devel/share/gennodejs/ros/me212bot/msg/mobile_step.js"
   "/home/robot/mobile/catkin_ws/devel/share/gennodejs/ros/me212bot/msg/WheelCmdVel.js"
 )
 

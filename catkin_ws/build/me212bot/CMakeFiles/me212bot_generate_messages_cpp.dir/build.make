@@ -53,16 +53,24 @@ CMAKE_BINARY_DIR = /home/robot/mobile/catkin_ws/build
 # Include the progress variables for this target.
 include me212bot/CMakeFiles/me212bot_generate_messages_cpp.dir/progress.make
 
+me212bot/CMakeFiles/me212bot_generate_messages_cpp: /home/robot/mobile/catkin_ws/devel/include/me212bot/mobile_step.h
 me212bot/CMakeFiles/me212bot_generate_messages_cpp: /home/robot/mobile/catkin_ws/devel/include/me212bot/WheelCmdVel.h
 
+
+/home/robot/mobile/catkin_ws/devel/include/me212bot/mobile_step.h: /opt/ros/kinetic/lib/gencpp/gen_cpp.py
+/home/robot/mobile/catkin_ws/devel/include/me212bot/mobile_step.h: /home/robot/mobile/catkin_ws/src/me212bot/msg/mobile_step.msg
+/home/robot/mobile/catkin_ws/devel/include/me212bot/mobile_step.h: /opt/ros/kinetic/share/gencpp/msg.h.template
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/robot/mobile/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating C++ code from me212bot/mobile_step.msg"
+	cd /home/robot/mobile/catkin_ws/build/me212bot && ../catkin_generated/env_cached.sh /usr/bin/python /opt/ros/kinetic/share/gencpp/cmake/../../../lib/gencpp/gen_cpp.py /home/robot/mobile/catkin_ws/src/me212bot/msg/mobile_step.msg -Ime212bot:/home/robot/mobile/catkin_ws/src/me212bot/msg -p me212bot -o /home/robot/mobile/catkin_ws/devel/include/me212bot -e /opt/ros/kinetic/share/gencpp/cmake/..
 
 /home/robot/mobile/catkin_ws/devel/include/me212bot/WheelCmdVel.h: /opt/ros/kinetic/lib/gencpp/gen_cpp.py
 /home/robot/mobile/catkin_ws/devel/include/me212bot/WheelCmdVel.h: /home/robot/mobile/catkin_ws/src/me212bot/msg/WheelCmdVel.msg
 /home/robot/mobile/catkin_ws/devel/include/me212bot/WheelCmdVel.h: /opt/ros/kinetic/share/gencpp/msg.h.template
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/robot/mobile/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating C++ code from me212bot/WheelCmdVel.msg"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold --progress-dir=/home/robot/mobile/catkin_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating C++ code from me212bot/WheelCmdVel.msg"
 	cd /home/robot/mobile/catkin_ws/build/me212bot && ../catkin_generated/env_cached.sh /usr/bin/python /opt/ros/kinetic/share/gencpp/cmake/../../../lib/gencpp/gen_cpp.py /home/robot/mobile/catkin_ws/src/me212bot/msg/WheelCmdVel.msg -Ime212bot:/home/robot/mobile/catkin_ws/src/me212bot/msg -p me212bot -o /home/robot/mobile/catkin_ws/devel/include/me212bot -e /opt/ros/kinetic/share/gencpp/cmake/..
 
 me212bot_generate_messages_cpp: me212bot/CMakeFiles/me212bot_generate_messages_cpp
+me212bot_generate_messages_cpp: /home/robot/mobile/catkin_ws/devel/include/me212bot/mobile_step.h
 me212bot_generate_messages_cpp: /home/robot/mobile/catkin_ws/devel/include/me212bot/WheelCmdVel.h
 me212bot_generate_messages_cpp: me212bot/CMakeFiles/me212bot_generate_messages_cpp.dir/build.make
 

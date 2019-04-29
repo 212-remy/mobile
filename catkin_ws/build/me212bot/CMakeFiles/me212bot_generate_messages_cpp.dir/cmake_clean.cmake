@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/me212bot_generate_messages_cpp"
+  "/home/robot/mobile/catkin_ws/devel/include/me212bot/mobile_step.h"
   "/home/robot/mobile/catkin_ws/devel/include/me212bot/WheelCmdVel.h"
 )
 

@@ -3,5 +3,7 @@
   (:export
    "<WHEELCMDVEL>"
    "WHEELCMDVEL"
+   "<MOBILE_STEP>"
+   "MOBILE_STEP"
   ))
 
