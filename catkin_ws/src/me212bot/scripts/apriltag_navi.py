@@ -14,9 +14,11 @@ import time
 from me212bot.msg import WheelCmdVel
 from apriltags.msg import AprilTagDetections
 from helper import transformPose, pubFrame, cross2d, lookupTransform, pose2poselist, invPoselist, diffrad
-#from std_msgs.msg import int32
+from std_msgs.msg import Float32
 from geometry_msgs.msg import Point, Pose
 
+pi = np.pi
+b = (0.45/2) #robot width
 rospy.init_node('apriltag_navi', anonymous=True)
 lr = tf.TransformListener()
 br = tf.TransformBroadcaster()
@@ -25,6 +27,7 @@ def main():
     apriltag_sub = rospy.Subscriber("/apriltags/detections", AprilTagDetections, apriltag_callback, queue_size = 1)
     #step_sub = rospy.Subscriber('/mobile_step', int32, step_callback, queue_size = 1)
     odom_sub = rospy.Subscriber('/odom', Pose, odom_callback, queue_size = 1)
+    distance_sub = rospy.Subscriber('/distance', Float32, distance_callback, queue_size = 1)
     object_sub = rospy.Subscriber('/object_position', Point, object_callback, queue_size = 10)
     rospy.sleep(1)
     
@@ -45,24 +48,29 @@ def constant_vel_loop():
     
     while not rospy.is_shutdown() :
         wcv = WheelCmdVel()
-        wcv.desiredWV_R = 0
-        wcv.desiredWV_L = 0
+        wcv.desiredWV_R = .1
+        wcv.desiredWV_L = .1
         
         velcmd_pub.publish(wcv) 
         print wcv.desiredWV_R, wcv.desiredWV_L
         rate.sleep()
+        
+def shutdown():
+    wcv.desiredWV_R = 0.0  
+    wcv.desiredWV_L = 0.0
+    velcmd_pub.publish(wcv)
 
 ## computing desired wheel velocity based on curvature and robot velocity - ANANYA        
 def get_desiredWV(robot_velocity, path_curvature):
-    desiredWV_R = robot_velocity - path_curvature*b*robot_velocity #b is a known constant, equations are from Lab 2
-    desiredWV_L = 2*robot_velocity - desiredWV_L 
+    desiredWV_L = robot_velocity - path_curvature*b*robot_velocity #b is a known constant NEED TO CHANGE, equations are from Lab 2
+    desiredWV_R = 2*robot_velocity - desiredWV_L #positive path curvature: turn left, negative path curvature: turn right
     return desiredWV_R, desiredWV_L
 
 ## apriltag msg handling function
 def apriltag_callback(data):
     # use apriltag pose detection to find where is the robot
     for detection in data.detections:
-        if detection.id == 1:   # tag id is the correct one
+        if detection.id == 0:   # tag id is the correct one
             poselist_tag_cam = pose2poselist(detection.pose)
             poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
             poselist_base_tag = invPoselist(poselist_tag_base)
@@ -84,6 +92,10 @@ def odom_callback(data):
     robot_theta = yaw
     #print 'Received robot (x, y, theta):', robot_x, robot_y, robot_theta
 
+def distance_callback(data):
+    global pathDistance
+    pathDistance = data.data
+
 def object_callback(data):
     global obj_x 
     global obj_y
@@ -98,10 +110,11 @@ def object_callback(data):
 def step_callback(data):
     global step
     step = data.data
-    print step
+    #print 'Received step:', step
 
 
 def navi_loop():
+    rospy.on_shutdown(shutdown)
     velcmd_pub = rospy.Publisher("/cmdvel", WheelCmdVel, queue_size = 1)
     target_pose2d = [0.25, 0, np.pi]
     rate = rospy.Rate(100) # 100hz
@@ -116,8 +129,9 @@ def navi_loop():
     
     while not rospy.is_shutdown() :
         #~ try:
-            #~ print robot_x, robot_y, robot_theta, 'robot'
-            #~ print obj_x, obj_y, obj_z, 'object'
+            #~ #print robot_x, robot_y, robot_theta, 'robot'
+            #~ #print obj_x, obj_y, obj_z, 'object'
+            #~ print pathDistance, 'distance'
         #~ except Exception as e:
             #~ pass
         
@@ -152,6 +166,7 @@ def navi_loop():
                 #done with step 1
                 print 'Done with step 1'
                 step = 2
+                dist_to_table = pathDistance #save pathDistance from start to table - AN
             elif np.linalg.norm( pos_delta ) < 0.08:
                 arrived_position = True
                 if diffrad(robot_yaw, target_pose2d[2]) > 0:
@@ -176,7 +191,7 @@ def navi_loop():
                     wcv.desiredWV_R = 0.1
                     wcv.desiredWV_L = -0.1
         
-        #wait at pizza station until next step for at most 2 minutes
+        #wait at pizza station until next step for at most 10 seconds
         if step == 2:
             if not step_2_start:
                 step_2_start = time.time()
@@ -188,26 +203,47 @@ def navi_loop():
                 print 'Done with step 2'
                 step = 3
         
-        #go to waiter
+        #go to waiter using dead reckoning
         if step == 3:
-
-            print 'Done with step 3'
-            step = 4
-            #Case 3.1: waiter not in view
-            #dead reckoning
-            #compute desired wheel velocities based on desired trajectory
-            #if (distance < some value): publish desired vel for straight line backward - use get_desiredWV function 
-            #   wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(-velocity, 0)
-            #elif (distance < some other value):
-            #   if (april tag on wall in view): turn right in place until april tag not in view <- not sure if this is necessary
-            #   else: 
-            #       if waiter not in view: left arc path 
-            #       if waiter in view: stop
+            table_to_waiter = pathDistance - dist_to_table #initialize path distance to 0 at the table
             
-            #Case 3.2: waiter in view (cv x between 0 & 590, y between 0 & 440)
+            #back up
+            if (table_to_waiter < 0.5):  
+                print "Case 3.1:", table_to_waiter
+                K = 0
+                wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(-0.1, K)
+                ref_theta_1 = robot_theta
+                
+            #turn left
+            elif abs(robot_theta - ref_theta_1) < pi/4:
+                print "Case 3.2:", abs(robot_theta - ref_theta_1)
+                wcv.desiredWV_R = .1
+                wcv.desiredWV_L = -.1
+                ref_dist = pathDistance
+                
+            #arc left (mainly forward)
+            elif (pathDistance - ref_dist) < 1.3:
+                print "Case 3.3:", (pathDistance - ref_dist)
+                wcv.desiredWV_R = .11
+                wcv.desiredWV_L = .1
+                ref_theta_2 = robot_theta
+                
+            #turn to face waiter
+            elif (robot_theta - ref_theta_2) < 3/4*pi:
+                print "Case 3.4:", (robot_theta - ref_theta_2)
+                #K = 1/b
+                #wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(0.05, K) #turn 45 degrees
+                wcv.desiredWV_R = .1
+                wcv.desiredWV_L = -.1
+                
+            #stop in front of waiter (cv x between 0 & 590, y between 0 & 440) 
+            else:
+                print "Case 3.5: Done with step 3"
+                wcv.desiredWV_R = 0.0
+                wcv.desiredWV_L = 0.0
+                step = 4
             
-        
-        #wait in front of waiter until next step for at most 2 minutes
+        #wait in front of waiter until next step for at most 10 seconds
         start_time = time.time()
         if step == 4:
             if not step_4_start:
@@ -225,7 +261,10 @@ def navi_loop():
             print 'Done with step 5'
             
             #dead reckoning
-
+            #if (april tag not in view):
+            #   slight curve left
+            #else:
+            #   turn right, go forward
             #final stop
             wcv.desiredWV_R = 0.0  
             wcv.desiredWV_L = 0.0

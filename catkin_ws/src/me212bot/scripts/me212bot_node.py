@@ -8,6 +8,7 @@ import threading
 import serial
 import tf.transformations as tfm
 from geometry_msgs.msg import Pose, Quaternion
+from std_msgs.msg import Float32
 
 import helper
 from me212bot.msg import WheelCmdVel
@@ -20,8 +21,7 @@ def main():
     
     ## 1. Initialize a subscriber
     rospy.Subscriber('/cmdvel', WheelCmdVel, cmdvel_callback)
-    
-    ## 2. Initialize a publisher
+
     odometry_thread = threading.Thread(target = read_odometry_loop)
     odometry_thread.start()
     
@@ -39,6 +39,7 @@ def cmdvel_callback(msg):
 # read_odometry_loop() is for reading odometry from Arduino and publish to rostopic. (No need to modify)
 def read_odometry_loop():
     odom_pub = rospy.Publisher('/odom', Pose, queue_size = 1)
+    distance_pub = rospy.Publisher('/distance', Float32, queue_size = 1)
     prevtime = rospy.Time.now()
     while not rospy.is_shutdown():
         # get a line of string that represent current odometry from serial
@@ -51,7 +52,8 @@ def read_odometry_loop():
         try:
             x     = float(splitData[0])
             y     = float(splitData[1])
-            theta = float(splitData[2])
+            pathDistance = float(splitData[2])
+            theta = float(splitData[3])
             
             hz    = 1.0 / (rospy.Time.now().to_sec() - prevtime.to_sec())
             prevtime = rospy.Time.now()
@@ -66,6 +68,9 @@ def read_odometry_loop():
             #print 'after quaternion conversion'
             odom.orientation = Quaternion(qtuple[0], qtuple[1], qtuple[2], qtuple[3])
             odom_pub.publish(odom)
+            
+            dist = Float32(pathDistance)
+            distance_pub.publish(dist)
             
         except Exception as e:
             # print out msg if there is an error parsing a serial msg

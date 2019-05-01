@@ -46,3 +46,13 @@ script "run" {
     start cmd "4-object_detection";
     start cmd "5-robot";
 }
+
+script "stop" {
+    stop cmd "0-roscore";
+    stop cmd "1-frames";
+    stop cmd "2-kinect";
+    stop cmd "3-apriltag";
+    stop cmd "4-object_detection";
+    stop cmd "5-robot";
+    stop cmd "6-navigation";
+}

@@ -109,6 +109,7 @@ class SerialComm {
         if (current_time - prevSerialTime >= SERIAL_PERIOD_MICROS) {
             Serial.print(robotPose.X, 6);   Serial.print(",");  //X 
             Serial.print(robotPose.Y, 6);   Serial.print(",");  //Y 
+            Serial.print(robotPose.pathDistance, 6);   Serial.print(",");  //PathDistance 
             Serial.println(robotPose.Th);                       //Th
             prevSerialTime = current_time;
         }
