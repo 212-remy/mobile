@@ -123,9 +123,12 @@ def navi_loop():
     
     arrived = False
     arrived_position = False
-    step = 1 #for testing without delta robot
+    step = 3 #for testing without delta robot
+    step_3_case = 4
     step_2_start = None
     step_4_start = None
+    
+    ref_theta_1 = robot_theta
     
     while not rospy.is_shutdown() :
         #~ try:
@@ -144,7 +147,7 @@ def navi_loop():
                 print 'Case 1.0 Tag not in view, Stop'
                 wcv.desiredWV_R = 0.0  # right, left
                 wcv.desiredWV_L = 0.0
-                velcmd_pub.publish(wcv)  
+                velcmd_pub.publish(wcv)
                 rate.sleep()
                 continue
             
@@ -205,43 +208,53 @@ def navi_loop():
         
         #go to waiter using dead reckoning
         if step == 3:
-            table_to_waiter = pathDistance - dist_to_table #initialize path distance to 0 at the table
+            #table_to_waiter = pathDistance - dist_to_table #initialize path distance to 0 at the table
             
             #back up
-            if (table_to_waiter < 0.5):  
+            if step_3_case == 1:  
                 print "Case 3.1:", table_to_waiter
                 K = 0
                 wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(-0.1, K)
                 ref_theta_1 = robot_theta
+                if (table_to_waiter >= 0.5):
+                    step_3_case = 2
                 
             #turn left
-            elif abs(robot_theta - ref_theta_1) < pi/4:
+            elif step_3_case == 2:
                 print "Case 3.2:", abs(robot_theta - ref_theta_1)
                 wcv.desiredWV_R = .1
                 wcv.desiredWV_L = -.1
                 ref_dist = pathDistance
+                if abs(robot_theta - ref_theta_1) >= pi/4:
+                    step_3_case = 3
                 
             #arc left (mainly forward)
-            elif (pathDistance - ref_dist) < 1.3:
+            elif step_3_case == 3:
                 print "Case 3.3:", (pathDistance - ref_dist)
                 wcv.desiredWV_R = .11
                 wcv.desiredWV_L = .1
-                ref_theta_2 = robot_theta
+                if (pathDistance - ref_dist) >= 1.3:
+                    step_3_case = 4
                 
             #turn to face waiter
-            elif (robot_theta - ref_theta_2) < 3/4*pi:
-                print "Case 3.4:", (robot_theta - ref_theta_2)
+            elif step_3_case == 4:
+                print "Case 3.4 (Robot, Ref):", robot_theta, ref_theta_1
                 #K = 1/b
                 #wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(0.05, K) #turn 45 degrees
                 wcv.desiredWV_R = .1
                 wcv.desiredWV_L = -.1
+                if (robot_theta - ref_theta_1) >= pi:
+                    step_3_case = 5
                 
             #stop in front of waiter (cv x between 0 & 590, y between 0 & 440) 
-            else:
+            elif step_3_case == 5:
                 print "Case 3.5: Done with step 3"
                 wcv.desiredWV_R = 0.0
                 wcv.desiredWV_L = 0.0
                 step = 4
+            
+            else:
+                print "STEP 3 UNKNOWN CASE:", step_3_case 
             
         #wait in front of waiter until next step for at most 10 seconds
         start_time = time.time()
