@@ -97,14 +97,14 @@ def distance_callback(data):
     pathDistance = data.data
 
 def object_callback(data):
-    global obj_x 
-    global obj_y
-    global obj_z
+    global waiter_x 
+    global waiter_y
+    global waiter_z
     
-    obj_x = data.x
-    obj_y = data.y
-    obj_z = data.z
-    #print 'Received object (x, y, z):', obj_x, obj_y, obj_z
+    waiter_x = data.x
+    waiter_y = data.y
+    waiter_z = data.z
+    #print 'Received object (x, y, z):', waiter_x, waiter_y, waiter_z
 
 
 def step_callback(data):
@@ -133,9 +133,10 @@ def navi_loop():
     while not rospy.is_shutdown() :
         #~ try:
             #~ #print robot_x, robot_y, robot_theta, 'robot'
-            #~ #print obj_x, obj_y, obj_z, 'object'
+            #~ #print waiter_x, waiter_y, waiter_z, 'object'
             #~ print pathDistance, 'distance'
         #~ except Exception as e:
+            #print e
             #~ pass
         
         # Get robot pose
@@ -236,7 +237,7 @@ def navi_loop():
                 if (pathDistance - ref_dist) >= 1.3:
                     step_3_case = 4
                 
-            #turn to face waiter
+            #turn to face waiter (cv x between 0 & 590, y between 0 & 440, z in meters)
             elif step_3_case == 4:
                 print "Case 3.4 (Robot, Ref):", robot_theta, ref_theta_1
                 #K = 1/b
@@ -246,7 +247,7 @@ def navi_loop():
                 if (robot_theta - ref_theta_1) >= pi:
                     step_3_case = 5
                 
-            #stop in front of waiter (cv x between 0 & 590, y between 0 & 440) 
+            #stop in front of waiter 
             elif step_3_case == 5:
                 print "Case 3.5: Done with step 3"
                 wcv.desiredWV_R = 0.0
