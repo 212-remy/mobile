@@ -25,7 +25,6 @@ void setup() {
 void loop() {
     //timed loop implementation
     unsigned long currentTime = micros();
-    
     if (currentTime - prevTime >= PERIOD_MICROS) {
       
         // 1. Check encoder

@@ -14,7 +14,7 @@ import time
 from me212bot.msg import WheelCmdVel
 from apriltags.msg import AprilTagDetections
 from helper import transformPose, pubFrame, cross2d, lookupTransform, pose2poselist, invPoselist, diffrad
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool
 from geometry_msgs.msg import Point, Pose
 
 pi = np.pi
@@ -54,7 +54,6 @@ def constant_vel_loop():
         velcmd_pub.publish(wcv) 
         print wcv.desiredWV_R, wcv.desiredWV_L
         rate.sleep()
-        
 def shutdown():
     wcv.desiredWV_R = 0.0  
     wcv.desiredWV_L = 0.0
@@ -116,10 +115,12 @@ def step_callback(data):
 def navi_loop():
     rospy.on_shutdown(shutdown)
     velcmd_pub = rospy.Publisher("/cmdvel", WheelCmdVel, queue_size = 1)
+    mobile_ready_pub = rospy.Publisher('/mobile_ready', Bool, queue_size = 1) #-AN publish to delta robot mobile ready = True/False
     target_pose2d = [0.25, 0, np.pi]
     rate = rospy.Rate(100) # 100hz
     
     wcv = WheelCmdVel()
+    
     
     arrived = False
     arrived_position = False
@@ -127,6 +128,7 @@ def navi_loop():
     step_3_case = 4
     step_2_start = None
     step_4_start = None
+    step_5_case = 1
     
     ref_theta_1 = robot_theta
     
@@ -239,21 +241,30 @@ def navi_loop():
                 
             #turn to face waiter (cv x between 0 & 590, y between 0 & 440, z in meters)
             elif step_3_case == 4:
-                print "Case 3.4 (Robot, Ref):", robot_theta, ref_theta_1
+                #print "Case 3.4 (Robot, Ref):", robot_theta, ref_theta_1
                 #K = 1/b
                 #wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(0.05, K) #turn 45 degrees
-                wcv.desiredWV_R = .1
-                wcv.desiredWV_L = -.1
-                if (robot_theta - ref_theta_1) >= pi:
-                    step_3_case = 5
+                #old_x = waiter_x
+                #print old_x
+                #check position of the waiter
+                try:
+                    print waiter_x, waiter_y, waiter_z
+                    if (waiter_x <= 300): #need to add case for if there's an old value stored
+                            wcv.desiredWV_R = .1
+                            wcv.desiredWV_L = -.1
+                            
+                #if (robot_theta - ref_theta_1) >= pi:
+                    else:
+                        step_3_case = 5
+                except:
+                        wcv.desiredWV_R = .1
+                        wcv.desiredWV_L = -.1
+                        print "waiter not in view"
                 
             #stop in front of waiter 
             elif step_3_case == 5:
                 print "Case 3.5: Done with step 3"
-                wcv.desiredWV_R = 0.0
-                wcv.desiredWV_L = 0.0
                 step = 4
-            
             else:
                 print "STEP 3 UNKNOWN CASE:", step_3_case 
             
@@ -262,32 +273,48 @@ def navi_loop():
         if step == 4:
             if not step_4_start:
                 step_4_start = time.time()
-                
+                print step_4_start
             if (time.time() < step_4_start + 10):
                 wcv.desiredWV_R = 0.0  
                 wcv.desiredWV_L = 0.0
             else:
                 print 'Done with step 4'
+                ref_dist_5 = pathDistance
                 step = 5
             
         #navigate to end
         if step == 5:
-            print 'Done with step 5'
-            
-            #dead reckoning
-            #if (april tag not in view):
-            #   slight curve left
-            #else:
-            #   turn right, go forward
+            #dead reckoning - can straighten according to april tag 0
+            if step_5_case == 1:
+                print "Case 5.1:", (pathDistance - ref_dist_5)
+                wcv.desiredWV_R = 0.1
+                wcv.desiredWV_L = 0.#go forward
+                if (pathDistance - ref_dist_5) > 0.8:
+                    step_5_case = 2
+                    ref_theta_5 = robot_theta #set reference theta for step 5
+            elif step_5_case == 2:
+                print "Case 5.2:", (robot_theta - ref_theta_5) #turn left for 45 degrees
+                wcv.desiredWV_R = .1
+                wcv.desiredWV_L = -.1
+                if (robot_theta - ref_theta_5) >= pi/6:
+                    step_5_case = 3
+            elif step_5_case == 3:
+                print "Case 5.3:" #curve to the right
+                wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(0.1, -1/0.25)
+                if (pathDistance - ref_dist_5) > (0.2 + 0.25*pi): 
+                    step_5_case = 4
+            elif step_5_case == 4: #go straight to end
+                step_5_case = 5
+            else:
             #final stop
-            wcv.desiredWV_R = 0.0  
-            wcv.desiredWV_L = 0.0
-            velcmd_pub.publish(wcv)
-            quit()
+                wcv.desiredWV_R = 0.0  
+                wcv.desiredWV_L = 0.0
+                velcmd_pub.publish(wcv)
+                quit()
             
         #print 'Publishing Velocity:', wcv.desiredWV_R, wcv.desiredWV_L
-        velcmd_pub.publish(wcv)  
-        
+        velcmd_pub.publish(wcv)
+        mobile_ready_pub.publish(Bool(arrived)) #publish if mobile has arrived
         rate.sleep()
 
 if __name__=='__main__':
