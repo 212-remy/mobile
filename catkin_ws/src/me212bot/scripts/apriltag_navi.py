@@ -69,7 +69,14 @@ def get_desiredWV(robot_velocity, path_curvature):
 def apriltag_callback(data):
     # use apriltag pose detection to find where is the robot
     for detection in data.detections:
-        if detection.id == 0:   # tag id is the correct one
+        if detection.id == 0:   # pizza station tag id
+            poselist_tag_cam = pose2poselist(detection.pose)
+            poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
+            poselist_base_tag = invPoselist(poselist_tag_base)
+            poselist_base_map = transformPose(lr, poselist_base_tag, 'apriltag', 'map')
+            pubFrame(br, pose = poselist_base_map, frame_id = '/robot_base', parent_frame_id = '/map')
+            
+        elif detection.id == 3:   # final tag id
             poselist_tag_cam = pose2poselist(detection.pose)
             poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
             poselist_base_tag = invPoselist(poselist_tag_base)
@@ -252,8 +259,6 @@ def navi_loop():
                     if (waiter_x <= 300): #need to add case for if there's an old value stored
                             wcv.desiredWV_R = .1
                             wcv.desiredWV_L = -.1
-                            
-                #if (robot_theta - ref_theta_1) >= pi:
                     else:
                         step_3_case = 5
                 except:
@@ -265,6 +270,7 @@ def navi_loop():
             elif step_3_case == 5:
                 print "Case 3.5: Done with step 3"
                 step = 4
+                
             else:
                 print "STEP 3 UNKNOWN CASE:", step_3_case 
             
@@ -285,28 +291,89 @@ def navi_loop():
         #navigate to end
         if step == 5:
             #dead reckoning - can straighten according to april tag 0
-            if step_5_case == 1:
+            
+            if step_5_case == 1: #go forward
                 print "Case 5.1:", (pathDistance - ref_dist_5)
                 wcv.desiredWV_R = 0.1
-                wcv.desiredWV_L = 0.#go forward
+                wcv.desiredWV_L = 0.1 
                 if (pathDistance - ref_dist_5) > 0.8:
                     step_5_case = 2
                     ref_theta_5 = robot_theta #set reference theta for step 5
+                    
             elif step_5_case == 2:
                 print "Case 5.2:", (robot_theta - ref_theta_5) #turn left for 45 degrees
                 wcv.desiredWV_R = .1
                 wcv.desiredWV_L = -.1
                 if (robot_theta - ref_theta_5) >= pi/6:
                     step_5_case = 3
+                    
             elif step_5_case == 3:
                 print "Case 5.3:" #curve to the right
                 wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(0.1, -1/0.25)
                 if (pathDistance - ref_dist_5) > (0.2 + 0.25*pi): 
                     step_5_case = 4
+                    
             elif step_5_case == 4: #go straight to end
-                step_5_case = 5
-            else:
-            #final stop
+                wcv.desiredWV_R, wcv.desiredWV_L = (.1, .1)
+                if (pathDistance - ref_dist_5) > (0.6 + 0.25*pi): 
+                    step_5_case = 5
+                
+                """
+                target_pose2d = [0.25, 0, np.pi] #need to edit to get correct distance
+                
+                if robot_pose3d is None:
+                    print 'Case 5.4.0 Tag not in view, Stop'
+                    wcv.desiredWV_R = 0.0  # right, left
+                    wcv.desiredWV_L = 0.0
+                    velcmd_pub.publish(wcv)
+                    rate.sleep()
+                    continue
+                
+                robot_position2d  = robot_pose3d[0:2]
+                target_position2d = target_pose2d[0:2]
+                
+                robot_yaw    = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
+                robot_pose2d = robot_position2d + [robot_yaw]
+                
+                pos_delta         = np.array(target_position2d) - np.array(robot_position2d)
+                robot_heading_vec = np.array([np.cos(robot_yaw), np.sin(robot_yaw)])
+                heading_err_cross = cross2d( robot_heading_vec, pos_delta / np.linalg.norm(pos_delta) )
+            
+                if (np.linalg.norm( pos_delta ) < 0.08 and np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.05) : #farther than set distance and within angle range
+                    print 'Case 5.4.1  Stop'
+                    wcv.desiredWV_R = 0.0  
+                    wcv.desiredWV_L = 0.0
+                    #done with step 5
+                    print 'Done with step 5'
+                    step_5_case = 5
+                    
+                elif np.linalg.norm( pos_delta ) < 0.08:
+                    arrived_position = True
+                    if diffrad(robot_yaw, target_pose2d[2]) > 0:
+                        print 'Case 5.4.2.1  Turn right slowly'      
+                        wcv.desiredWV_R = -0.05 
+                        wcv.desiredWV_L = 0.05
+                    else:
+                        print 'Case 5.4.2.2  Turn left slowly'
+                        wcv.desiredWV_R = 0.05  
+                        wcv.desiredWV_L = -0.05
+                elif arrived_position or np.fabs( heading_err_cross ) < 0.2:
+                    print 'Case 5.4.3  Straight backwards'  
+                    wcv.desiredWV_R = -0.1
+                    wcv.desiredWV_L = -0.1
+                else:
+                    if heading_err_cross < 0:
+                        print 'Case 5.4.4.1  Turn right'
+                        wcv.desiredWV_R = -0.1
+                        wcv.desiredWV_L = 0.1
+                    else:
+                        print 'Case 5.4.4.2  Turn left'
+                        wcv.desiredWV_R = 0.1
+                        wcv.desiredWV_L = -0.1
+                """
+                
+            elif step_5_case == 5:
+                #final stop
                 wcv.desiredWV_R = 0.0  
                 wcv.desiredWV_L = 0.0
                 velcmd_pub.publish(wcv)
