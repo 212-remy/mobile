@@ -282,9 +282,9 @@ def navi_loop():
         #wait in front of waiter until next step for at most 10 seconds
         start_time = time.time()
         if step == 4:
-            if not step_4_start:
-                step_4_start = time.time()
-                print step_4_start
+            #if not step_4_start:
+            #    step_4_start = time.time()
+            #    print step_4_start
 
             if 100 <= waiter_x <= 200:
             	waiter_moving = True
@@ -298,6 +298,7 @@ def navi_loop():
     	        	print 'Done with step 4'
         	        ref_dist_5 = pathDistance
             	    step = 5
+
 
             wcv.desiredWV_R = 0.0  
             wcv.desiredWV_L = 0.0
