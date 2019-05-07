@@ -132,9 +132,12 @@ def navi_loop():
     arrived = False
     arrived_position = False
     step = 3 #for testing without delta robot
-    step_3_case = 4
     step_2_start = None
+    step_3_case = 4
     step_4_start = None
+    waiter_moving = False
+    waiter_start_time = None
+    waiter_vel = None
     step_5_case = 1
     
     ref_theta_1 = robot_theta
@@ -274,19 +277,33 @@ def navi_loop():
             else:
                 print "STEP 3 UNKNOWN CASE:", step_3_case 
             
+
+
         #wait in front of waiter until next step for at most 10 seconds
         start_time = time.time()
         if step == 4:
             if not step_4_start:
                 step_4_start = time.time()
                 print step_4_start
-            if (time.time() < step_4_start + 10):
-                wcv.desiredWV_R = 0.0  
-                wcv.desiredWV_L = 0.0
-            else:
-                print 'Done with step 4'
-                ref_dist_5 = pathDistance
-                step = 5
+
+            if 100 <= waiter_x <= 200:
+            	waiter_moving = True
+            	waiter_start_time = time.time()
+
+            elif waiter_x <= 100 and not waiter_vel and waiter_moving:
+            	waiter_vel = 100/(time.time()-waiter_start_time)
+
+            elif waiter_vel:
+	            if time.time() > waiter_start_time + 200/waiter_vel + 5:
+    	        	print 'Done with step 4'
+        	        ref_dist_5 = pathDistance
+            	    step = 5
+
+            wcv.desiredWV_R = 0.0  
+            wcv.desiredWV_L = 0.0
+
+
+
             
         #navigate to end
         if step == 5:
