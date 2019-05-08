@@ -1,6 +1,6 @@
 # generated from genmsg/cmake/pkg-genmsg.context.in
 
-messages_str = "/home/robot/mobile/catkin_ws/src/me212bot/msg/WheelCmdVel.msg;/home/robot/mobile/catkin_ws/src/me212bot/msg/mobile_step.msg"
+messages_str = "/home/robot/mobile/catkin_ws/src/me212bot/msg/WheelCmdVel.msg"
 services_str = ""
 pkg_name = "me212bot"
 dependencies_str = ""
