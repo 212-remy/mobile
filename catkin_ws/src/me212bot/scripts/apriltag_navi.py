@@ -24,6 +24,7 @@ lr = tf.TransformListener()
 br = tf.TransformBroadcaster()
 tag_id = None
 tag_scale = 3/7
+step = 0
 
     
 def main():
@@ -89,7 +90,7 @@ def apriltag_callback(data):
             poselist_base_map = transformPose(lr, poselist_base_tag, 'apriltag', 'map')
             pubFrame(br, pose = poselist_base_map, frame_id = '/robot_base', parent_frame_id = '/map')
             
-        #elif detection.id == 0:   #  tag id
+        elif detection.id == 0 and step == 3:   #  tag id
             #tag_id = 0
             #poselist_tag_cam = pose2poselist(detection.pose)
             #poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
@@ -147,7 +148,7 @@ def navi_loop():
     arrived_position = False
     step = 1 #for testing without delta robot
     step_2_start = None
-    step_3_case = 4
+    step_3_case = 1
     is_waiter_here = [False, False, False] # <100, 100<x<200, 200<x<300
     step_4_start = None
     waiter_moving = False
@@ -243,6 +244,7 @@ def navi_loop():
             else:
                 print 'Done with step 2'
                 step = 3
+                step_3_case = 1
         
         #go to waiter using dead reckoning
         if step == 3:
@@ -272,7 +274,13 @@ def navi_loop():
                 wcv.desiredWV_R = .11
                 wcv.desiredWV_L = .1
                 if (pathDistance - ref_dist) >= 1.3:
-                    step_3_case = 4
+                	#finding the ideal angle relative to tag 0
+                	if robot_pose3d:
+                		robot_yaw = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
+                		print robot_yaw
+                	else:
+                		print "tag not in view"
+                    #step_3_case = 4
                 
             #turn to face waiter (cv x between 0 & 590, y between 0 & 440, z in meters)
             elif step_3_case == 4:
