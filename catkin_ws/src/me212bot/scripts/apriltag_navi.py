@@ -23,6 +23,7 @@ rospy.init_node('apriltag_navi', anonymous=True)
 lr = tf.TransformListener()
 br = tf.TransformBroadcaster()
 tag_id = None
+tag_scale = 3/
 
     
 def main():
@@ -187,7 +188,7 @@ def navi_loop():
             robot_yaw    = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
             robot_pose2d = robot_position2d + [robot_yaw]
             
-            pos_delta         = np.array(target_position2d) - np.array(robot_position2d)
+            pos_delta         = (np.array(target_position2d) - np.array(robot_position2d))*tag_scale #scale distance based on tag size
             robot_heading_vec = np.array([np.cos(robot_yaw), np.sin(robot_yaw)])
             heading_err_cross = cross2d( robot_heading_vec, pos_delta / np.linalg.norm(pos_delta) )
         
@@ -335,102 +336,29 @@ def navi_loop():
         if step == 5:
             robot_position2d  = None if not robot_pose3d else robot_pose3d[0:2]
             target_position2d = None if not target_pose2d else target_pose2d[0:2]
+            pos_delta = (np.array(target_position2d) - np.array(robot_position2d))*tag_scale
             
-            #robot_yaw    = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
-            #robot_pose2d = robot_position2d + [robot_yaw]
-                
-            
-            #robot_heading_vec = np.array([np.cos(robot_yaw), np.sin(robot_yaw)])
-            #heading_err_cross = cross2d( robot_heading_vec, pos_delta / np.linalg.norm(pos_delta) )
             if not (robot_pose3d and tag_id): #turn left
                 wcv.desiredWV_R = (0.1+.05) if step5_tag3_detected else 0.1
                 wcv.desiredWV_L = (-0.1+.05) if step5_tag3_detected else 0.1 
                               
                 print 'Case 5.4.0 Tag not in view'
-            elif robot_pose3d and np.linalg.norm((np.array(target_position2d) - np.array(robot_position2d))) > 0.15:
-                wcv.desiredWV_R = 0.1
-                wcv.desiredWV_L = 0.1
-                step5_tag3_detected = True
-            elif robot_pose3d and np.linalg.norm((np.array(target_position2d) - np.array(robot_position2d))) > 0.15:
+            elif robot_pose3d and np.linalg.norm(pos_delta) > 0.15:
                 wcv.desiredWV_R = 0.1
                 wcv.desiredWV_L = 0.1
                 step5_tag3_detected = True
             else:
                 wcv.desiredWV_R = 0
                 wcv.desiredWV_L = 0
-            #else:
-                #if tag_id == 0 and not tag_3_detected:
-                    #target_pose2d = [0, 0, np.pi]
-                #elif tag_id == 3:
-                    #tag_3_detected = True
-                    #target_pose2d = [0.25, 0, np.pi]
-                    
-                #robot_position2d  = robot_pose3d[0:2]
-                #target_position2d = target_pose2d[0:2]
-                
-                #robot_yaw    = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
-                #robot_pose2d = robot_position2d + [robot_yaw]
-                
-                #pos_delta         = np.array(target_position2d) - np.array(robot_position2d)
-                #robot_heading_vec = np.array([np.cos(robot_yaw), np.sin(robot_yaw)])
-                #heading_err_cross = cross2d( robot_heading_vec, pos_delta / np.linalg.norm(pos_delta) )
-            
-                #if tag_id == 0 and np.linalg.norm( pos_delta ) < 0.40 and not tag_3_detected:
-                    #print "tag 0, turn"
-                    #wcv.desiredWV_R = 0.1
-                    #wcv.desiredWV_L = -0.1 
-                
-                #elif tag_id == 0 and not tag_3_detected:
-                    #print "tag 0, forward"
-                    #wcv.desiredWV_R = 0.1
-                    #wcv.desiredWV_L = 0.1 
-                
-                #elif tag_id == 0:
-                    #continue
-                    
-                #elif np.linalg.norm( pos_delta ) > 0.8:
-                    #wcv.desiredWV_R = 0.1  
-                    #wcv.desiredWV_L = 0.1
-            
-                #elif arrived or (np.linalg.norm( pos_delta ) < 0.08 and np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.05) :
-                    #print 'Case 5.1  Stop, done with step 5'
-                    #wcv.desiredWV_R = 0.0  
-                    #wcv.desiredWV_L = 0.0
-                    #arrived = True
-                    ##done with step 5
-                    #step = 6
 
-                    
-                #elif np.linalg.norm( pos_delta ) < 0.08:
-                    #arrived_position = True
-                    #if diffrad(robot_yaw, target_pose2d[2]) > 0:
-                        #print 'Case 5.2.1  Turn right slowly'      
-                        #wcv.desiredWV_R = -0.05 
-                        #wcv.desiredWV_L = 0.05
-                    #else:
-                        #print 'Case 5.2.2  Turn left slowly'
-                        #wcv.desiredWV_R = 0.05  
-                        #wcv.desiredWV_L = -0.05
-                        
-                #elif arrived_position or np.fabs( heading_err_cross ) < 0.2:
-                    #print 'Case 5.3  Straight forward'  
-                    #wcv.desiredWV_R = 0.1
-                    #wcv.desiredWV_L = 0.1
-                    
-                #else:
-                    #if heading_err_cross < 0:
-                        #print heading_err_cross
-                        #print 'Case 5.4.1  Turn right'
-                        #wcv.desiredWV_R = 0.1
-                        #wcv.desiredWV_L = -0.1
-                    #else:
-                        #print 'Case 5.4.2  Turn left'
-                        #wcv.desiredWV_R = -0.1
-                        #wcv.desiredWV_L = 0.1
-    
+
+
         if step == 6:
-            target_pose2d = [0.80, 0, np.pi]
-            target_pose2d = [0.80, 0, np.pi]
+            target_pose2d = [0.40, 0, np.pi]
+            
+            robot_position2d  = None if not robot_pose3d else robot_pose3d[0:2]
+            target_position2d = None if not target_pose2d else target_pose2d[0:2]
+            pos_delta = (np.array(target_position2d) - np.array(robot_position2d))*tag_scale
             
             if np.linalg.norm( pos_delta ) < 0.08:
                 print 'Done with step 6'
