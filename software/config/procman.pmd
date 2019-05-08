@@ -35,7 +35,6 @@ cmd "6-navigation" {
 }
 
 
-
 script "run" {
     start cmd "0-roscore";
     wait ms 1000;

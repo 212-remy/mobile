@@ -23,6 +23,7 @@ rospy.init_node('apriltag_navi', anonymous=True)
 lr = tf.TransformListener()
 br = tf.TransformBroadcaster()
 tag_id = None
+
     
 def main():
     apriltag_sub = rospy.Subscriber("/apriltags/detections", AprilTagDetections, apriltag_callback, queue_size = 1)
@@ -87,13 +88,13 @@ def apriltag_callback(data):
             poselist_base_map = transformPose(lr, poselist_base_tag, 'apriltag', 'map')
             pubFrame(br, pose = poselist_base_map, frame_id = '/robot_base', parent_frame_id = '/map')
             
-        elif detection.id == 0:   #  tag id
-            tag_id = 0
-            poselist_tag_cam = pose2poselist(detection.pose)
-            poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
-            poselist_base_tag = invPoselist(poselist_tag_base)
-            poselist_base_map = transformPose(lr, poselist_base_tag, 'apriltag', 'map')
-            pubFrame(br, pose = poselist_base_map, frame_id = '/robot_base', parent_frame_id = '/map')
+        #elif detection.id == 0:   #  tag id
+            #tag_id = 0
+            #poselist_tag_cam = pose2poselist(detection.pose)
+            #poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
+            #poselist_base_tag = invPoselist(poselist_tag_base)
+            #poselist_base_map = transformPose(lr, poselist_base_tag, 'apriltag', 'map')
+            #pubFrame(br, pose = poselist_base_map, frame_id = '/robot_base', parent_frame_id = '/map')
 
 def odom_callback(data):
     global robot_x 
@@ -132,6 +133,7 @@ def step_callback(data):
 
 
 def navi_loop():
+    step5_tag3_detected = False
     rospy.on_shutdown(shutdown)
     velcmd_pub = rospy.Publisher("/cmdvel", WheelCmdVel, queue_size = 1)
     mobile_ready_pub = rospy.Publisher('/mobile_ready', Bool, queue_size = 1) #-AN publish to delta robot mobile ready = True/False
@@ -140,10 +142,10 @@ def navi_loop():
     
     wcv = WheelCmdVel()
     
-    
+
     arrived = False
     arrived_position = False
-    step = 3 #for testing without delta robot
+    step = 5 #for testing without delta robot
     step_2_start = None
     step_3_case = 4
     is_waiter_here = [False, False, False] # <100, 100<x<200, 200<x<300
@@ -153,6 +155,7 @@ def navi_loop():
     waiter_vel = None
     step_5_case = 1
     tag_3_detected = False
+    ref_dist_5 = pathDistance
     
     ref_theta_1 = robot_theta
     
@@ -330,102 +333,125 @@ def navi_loop():
 
         #navigate to end
         if step == 5:
+            robot_position2d  = None if not robot_pose3d else robot_pose3d[0:2]
+            target_position2d = None if not target_pose2d else target_pose2d[0:2]
             
-            if robot_pose3d is None: #turn left
-                wcv.desiredWV_R = 0.1
-                wcv.desiredWV_L = -0.1 
+            #robot_yaw    = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
+            #robot_pose2d = robot_position2d + [robot_yaw]
+                
+            
+            #robot_heading_vec = np.array([np.cos(robot_yaw), np.sin(robot_yaw)])
+            #heading_err_cross = cross2d( robot_heading_vec, pos_delta / np.linalg.norm(pos_delta) )
+            if not (robot_pose3d and tag_id): #turn left
+                wcv.desiredWV_R = (0.1+.05) if step5_tag3_detected else 0.1
+                wcv.desiredWV_L = (-0.1+.05) if step5_tag3_detected else 0.1 
                               
                 print 'Case 5.4.0 Tag not in view'
-            
+            elif robot_pose3d and np.linalg.norm((np.array(target_position2d) - np.array(robot_position2d))) > 0.15:
+                wcv.desiredWV_R = 0.1
+                wcv.desiredWV_L = 0.1
+                step5_tag3_detected = True
+            elif robot_pose3d and np.linalg.norm((np.array(target_position2d) - np.array(robot_position2d))) > 0.15:
+                wcv.desiredWV_R = 0.1
+                wcv.desiredWV_L = 0.1
+                step5_tag3_detected = True
             else:
-                if tag_id == 0 and not tag_3_detected:
-                    target_pose2d = [0, 0, np.pi]
-                elif tag_id == 3:
-                    tag_3_detected = True
-                    target_pose2d = [0.40, 0, np.pi]
+                wcv.desiredWV_R = 0
+                wcv.desiredWV_L = 0
+            #else:
+                #if tag_id == 0 and not tag_3_detected:
+                    #target_pose2d = [0, 0, np.pi]
+                #elif tag_id == 3:
+                    #tag_3_detected = True
+                    #target_pose2d = [0.25, 0, np.pi]
                     
-                robot_position2d  = robot_pose3d[0:2]
-                target_position2d = target_pose2d[0:2]
+                #robot_position2d  = robot_pose3d[0:2]
+                #target_position2d = target_pose2d[0:2]
                 
-                robot_yaw    = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
-                robot_pose2d = robot_position2d + [robot_yaw]
+                #robot_yaw    = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
+                #robot_pose2d = robot_position2d + [robot_yaw]
                 
-                pos_delta         = np.array(target_position2d) - np.array(robot_position2d)
-                robot_heading_vec = np.array([np.cos(robot_yaw), np.sin(robot_yaw)])
-                heading_err_cross = cross2d( robot_heading_vec, pos_delta / np.linalg.norm(pos_delta) )
+                #pos_delta         = np.array(target_position2d) - np.array(robot_position2d)
+                #robot_heading_vec = np.array([np.cos(robot_yaw), np.sin(robot_yaw)])
+                #heading_err_cross = cross2d( robot_heading_vec, pos_delta / np.linalg.norm(pos_delta) )
             
-                if tag_id == 0 and np.linalg.norm( pos_delta ) < 0.40 and not tag_3_detected:
-                    print "tag 0, turn"
-                    wcv.desiredWV_R = 0.1
-                    wcv.desiredWV_L = -0.1 
+                #if tag_id == 0 and np.linalg.norm( pos_delta ) < 0.40 and not tag_3_detected:
+                    #print "tag 0, turn"
+                    #wcv.desiredWV_R = 0.1
+                    #wcv.desiredWV_L = -0.1 
                 
-                elif tag_id == 0 and not tag_3_detected:
-                    print "tag 0, forward"
-                    wcv.desiredWV_R = 0.1
-                    wcv.desiredWV_L = 0.1 
+                #elif tag_id == 0 and not tag_3_detected:
+                    #print "tag 0, forward"
+                    #wcv.desiredWV_R = 0.1
+                    #wcv.desiredWV_L = 0.1 
                 
-                elif tag_id == 0:
-                    continue
+                #elif tag_id == 0:
+                    #continue
+                    
+                #elif np.linalg.norm( pos_delta ) > 0.8:
+                    #wcv.desiredWV_R = 0.1  
+                    #wcv.desiredWV_L = 0.1
             
-                elif arrived or (np.linalg.norm( pos_delta ) < 0.08 and np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.05) :
-                    print 'Case 5.1  Stop, done with step 5'
-                    wcv.desiredWV_R = 0.0  
-                    wcv.desiredWV_L = 0.0
-                    arrived = True
-                    #done with step 5
-                    step = 6
+                #elif arrived or (np.linalg.norm( pos_delta ) < 0.08 and np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.05) :
+                    #print 'Case 5.1  Stop, done with step 5'
+                    #wcv.desiredWV_R = 0.0  
+                    #wcv.desiredWV_L = 0.0
+                    #arrived = True
+                    ##done with step 5
+                    #step = 6
 
                     
-                elif np.linalg.norm( pos_delta ) < 0.08:
-                    arrived_position = True
-                    if diffrad(robot_yaw, target_pose2d[2]) > 0:
-                        print 'Case 5.2.1  Turn right slowly'      
-                        wcv.desiredWV_R = -0.05 
-                        wcv.desiredWV_L = 0.05
-                    else:
-                        print 'Case 5.2.2  Turn left slowly'
-                        wcv.desiredWV_R = 0.05  
-                        wcv.desiredWV_L = -0.05
+                #elif np.linalg.norm( pos_delta ) < 0.08:
+                    #arrived_position = True
+                    #if diffrad(robot_yaw, target_pose2d[2]) > 0:
+                        #print 'Case 5.2.1  Turn right slowly'      
+                        #wcv.desiredWV_R = -0.05 
+                        #wcv.desiredWV_L = 0.05
+                    #else:
+                        #print 'Case 5.2.2  Turn left slowly'
+                        #wcv.desiredWV_R = 0.05  
+                        #wcv.desiredWV_L = -0.05
                         
-                elif arrived_position or np.fabs( heading_err_cross ) < 0.2:
-                    print 'Case 5.3  Straight forward'  
-                    wcv.desiredWV_R = 0.1
-                    wcv.desiredWV_L = 0.1
+                #elif arrived_position or np.fabs( heading_err_cross ) < 0.2:
+                    #print 'Case 5.3  Straight forward'  
+                    #wcv.desiredWV_R = 0.1
+                    #wcv.desiredWV_L = 0.1
                     
-                else:
-                    if heading_err_cross < 0:
-                        print 'Case 5.4.1  Turn right'
-                        wcv.desiredWV_R = -0.1
-                        wcv.desiredWV_L = 0.1
-                    else:
-                        print 'Case 5.4.2  Turn left'
-                        wcv.desiredWV_R = 0.1
-                        wcv.desiredWV_L = -0.1
+                #else:
+                    #if heading_err_cross < 0:
+                        #print heading_err_cross
+                        #print 'Case 5.4.1  Turn right'
+                        #wcv.desiredWV_R = 0.1
+                        #wcv.desiredWV_L = -0.1
+                    #else:
+                        #print 'Case 5.4.2  Turn left'
+                        #wcv.desiredWV_R = -0.1
+                        #wcv.desiredWV_L = 0.1
     
         if step == 6:
             target_pose2d = [0.80, 0, np.pi]
             target_pose2d = [0.80, 0, np.pi]
             
             if np.linalg.norm( pos_delta ) < 0.08:
-                print 'Done with step 5'
+                print 'Done with step 6'
                 #final stop
-                wcv.desiredWV_R = 0.
+                wcv.desiredWV_R = 0.0
                 wcv.desiredWV_L = 0.0
                 velcmd_pub.publish(wcv)
                 quit()
             
-            elif arrived_position or np.fabs( heading_err_cross ) < 0.2:
-                print 'Case 5.3  Straight backward'  
+            elif arrived_position or np.fabs( heading_err_cross ) < 0.5:
+                print 'Case 6.3  Straight backward'  
                 wcv.desiredWV_R = -0.1
                 wcv.desiredWV_L = -0.1
                 
             else:
                 if heading_err_cross < 0:
-                    print 'Case 5.4.1  Turn right'
+                    print 'Case 6.4.1  Turn right'
                     wcv.desiredWV_R = -0.1
                     wcv.desiredWV_L = 0.1
                 else:
-                    print 'Case 5.4.2  Turn left'
+                    print 'Case 6.4.2  Turn left'
                     wcv.desiredWV_R = 0.1
                     wcv.desiredWV_L = -0.1
 
