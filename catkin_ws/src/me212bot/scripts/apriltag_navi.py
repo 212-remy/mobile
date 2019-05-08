@@ -341,16 +341,30 @@ def navi_loop():
             if not (robot_pose3d and tag_id): #turn left
                 wcv.desiredWV_R = (0.1+.05) if step5_tag3_detected else 0.1
                 wcv.desiredWV_L = (-0.1+.05) if step5_tag3_detected else 0.1 
-                              
-                print 'Case 5.4.0 Tag not in view'
+                print 'Case 5.1 Tag not in view'
+
             elif robot_pose3d and np.linalg.norm(pos_delta) > 0.15:
                 wcv.desiredWV_R = 0.1
                 wcv.desiredWV_L = 0.1
                 step5_tag3_detected = True
-            else:
-                wcv.desiredWV_R = 0
-                wcv.desiredWV_L = 0
+                print 'Case 5.2 Moving to Tag'
 
+            else:
+            	robot_yaw = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
+            	if np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.05):
+                	wcv.desiredWV_R = 0
+                	wcv.desiredWV_L = 0
+                	#step = 6
+                	print 'Case 5.3.0 Done with Step 5'
+
+            	elif diffrad(robot_yaw, target_pose2d[2]) > 0:
+                    print 'Case 5.3.1  Turn right slowly'      
+                    wcv.desiredWV_R = -0.05 
+                    wcv.desiredWV_L = 0.05
+                else:
+                    print 'Case 5.3.2  Turn left slowly'
+                    wcv.desiredWV_R = 0.05  
+                    wcv.desiredWV_L = -0.05
 
 
         if step == 6:
@@ -360,7 +374,12 @@ def navi_loop():
             target_position2d = None if not target_pose2d else target_pose2d[0:2]
             pos_delta = (np.array(target_position2d) - np.array(robot_position2d))*tag_scale
             
-            if np.linalg.norm( pos_delta ) < 0.08:
+            if not (robot_pose3d and tag_id):
+                wcv.desiredWV_R = 0.0
+                wcv.desiredWV_L = 0.0
+                print 'Case 6.1 Tag not in view'
+
+            if np.linalg.norm( pos_delta ) < .15:
                 print 'Done with step 6'
                 #final stop
                 wcv.desiredWV_R = 0.0
@@ -368,7 +387,7 @@ def navi_loop():
                 velcmd_pub.publish(wcv)
                 quit()
             
-            elif arrived_position or np.fabs( heading_err_cross ) < 0.5:
+            elif np.fabs( heading_err_cross ) < 0.5:
                 print 'Case 6.3  Straight backward'  
                 wcv.desiredWV_R = -0.1
                 wcv.desiredWV_L = -0.1
