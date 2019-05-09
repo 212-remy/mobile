@@ -267,8 +267,8 @@ def navi_loop():
             #turn left
             elif step_3_case == 2:
                 print "Case 3.2:", abs(robot_theta - ref_theta_1)
-                wcv.desiredWV_R = .1
-                wcv.desiredWV_L = -.1
+                wcv.desiredWV_R = .2
+                wcv.desiredWV_L = -.2
                 ref_dist = pathDistance
                 if abs(robot_theta - ref_theta_1) >= (pi/4) + (10*pi)/180:
                     step_3_case = 3
@@ -303,12 +303,12 @@ def navi_loop():
                     elif 230 <= waiter_x and is_waiter_here[2]: #need to add case for if there's an old value stored
                             step_3_case = 5
                     
-                    wcv.desiredWV_R = .1
-                    wcv.desiredWV_L = -.1
+                    wcv.desiredWV_R = 1
+                    wcv.desiredWV_L = -1
 
                 except:
-                        wcv.desiredWV_R = .1
-                        wcv.desiredWV_L = -.1
+                        wcv.desiredWV_R = 1
+                        wcv.desiredWV_L = -1
                         print "waiter not in view"
                 
             #stop in front of waiter 
@@ -353,8 +353,8 @@ def navi_loop():
         if step == 5:
             target_pose2d = [0, 0, np.pi]
             if not robot_pose3d: #turn left
-                wcv.desiredWV_R = (0.1+.05) if (step5_tag3_detected or (pathDistance - ref_dist > .7)) else 0.1
-                wcv.desiredWV_L = (-0.1+.05) if (step5_tag3_detected or (pathDistance - ref_dist > .7)) else 0.1 
+                wcv.desiredWV_R = (0.1+.05) if (step5_tag3_detected or (pathDistance - ref_dist > .7)) else 1
+                wcv.desiredWV_L = (-0.1+.05) if (step5_tag3_detected or (pathDistance - ref_dist > .7)) else 1 
                 print 'Case 5.1 Tag not in view'
             
             else:
@@ -365,8 +365,8 @@ def navi_loop():
                 
     
                 if np.linalg.norm(pos_delta) > 0.1:
-                    wcv.desiredWV_R = 0.2
-                    wcv.desiredWV_L = 0.2
+                    wcv.desiredWV_R = .2
+                    wcv.desiredWV_L = .2
                     step5_tag3_detected = True
                     print 'Case 5.2 Moving to Tag'
     
@@ -414,18 +414,18 @@ def navi_loop():
                 
                 elif np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.1:
                     print 'Case 6.3  Straight backward'  
-                    wcv.desiredWV_R = -0.2
-                    wcv.desiredWV_L = -0.2
+                    wcv.desiredWV_R = -1
+                    wcv.desiredWV_L = -1
                     
                 elif np.linalg.norm( pos_delta ) > .05 and np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.1:
                     if heading_err_cross < 0:
                         print 'Case 6.4.1  Turn right'
-                        wcv.desiredWV_R = -0.1
-                        wcv.desiredWV_L = 0.1
+                        wcv.desiredWV_R = -1
+                        wcv.desiredWV_L = 1
                     else:
                         print 'Case 6.4.2  Turn left'
-                        wcv.desiredWV_R = 0.1
-                        wcv.desiredWV_L = -0.1
+                        wcv.desiredWV_R = 1
+                        wcv.desiredWV_L = -1
 
         mobile_ready_pub.publish(Bool(arrived)) #publish if mobile has arrived
         #print 'Publishing Velocity:', wcv.desiredWV_R, wcv.desiredWV_L
