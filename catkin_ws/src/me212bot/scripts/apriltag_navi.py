@@ -147,7 +147,7 @@ def navi_loop():
     arrived_position = False
     step = 1 #for testing without delta robot
     step_2_start = None
-    step_3_case = 4
+    step_3_case = 1
     is_waiter_here = [False, False, False] # <100, 100<x<200, 200<x<300
     step_4_start = None
     waiter_moving = False
@@ -158,6 +158,8 @@ def navi_loop():
     ref_dist_5 = pathDistance
     
     ref_theta_1 = robot_theta
+    
+    dist_to_table = pathDistance #for testing step 3
     
     while not rospy.is_shutdown() :
         #~ try:
@@ -173,7 +175,7 @@ def navi_loop():
 
         #go to pizza station
         if step == 1:
-            target_pose2d = [0.05, 0, np.pi]
+            target_pose2d = [0.15, 0, np.pi]
             print pathDistance
             if pathDistance < 1.2:
                 wcv.desiredWV_R = 1.0  # right, left
@@ -195,10 +197,10 @@ def navi_loop():
                 robot_yaw    = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
                 robot_pose2d = robot_position2d + [robot_yaw]
                 
-                pos_delta         = (np.array(target_position2d) - np.array(robot_position2d))*tag_scale #scale distance based on tag size
+                pos_delta         = (np.array(target_position2d) - np.array(robot_position2d)) #scale distance based on tag size
                 robot_heading_vec = np.array([np.cos(robot_yaw), np.sin(robot_yaw)])
                 heading_err_cross = cross2d( robot_heading_vec, pos_delta / np.linalg.norm(pos_delta) )
-            
+                print np.linalg.norm( pos_delta )
                 if arrived or (np.linalg.norm( pos_delta ) < 0.08 and np.fabs(diffrad(robot_yaw, target_pose2d[2]))<0.05) :
                     print 'Case 1.1  Stop'
                     wcv.desiredWV_R = 0.0  
@@ -206,7 +208,7 @@ def navi_loop():
                     arrived = True
                     #done with step 1
                     print 'Done with step 1'
-                    #step = 2
+                    step = 2
                     dist_to_table = pathDistance #save pathDistance from start to table - AN
                 elif np.linalg.norm( pos_delta ) < 0.08:
                     arrived_position = True
@@ -237,7 +239,7 @@ def navi_loop():
             if not step_2_start:
                 step_2_start = time.time()
                 
-            if (time.time() < step_2_start + 10):
+            if (time.time() < step_2_start + 2):
                 wcv.desiredWV_R = 0.0  
                 wcv.desiredWV_L = 0.0
             else:
@@ -246,7 +248,7 @@ def navi_loop():
         
         #go to waiter using dead reckoning
         if step == 3:
-            #table_to_waiter = pathDistance - dist_to_table #initialize path distance to 0 at the table
+            table_to_waiter = pathDistance - dist_to_table #initialize path distance to 0 at the table
             
             #back up
             if step_3_case == 1:  
@@ -263,7 +265,7 @@ def navi_loop():
                 wcv.desiredWV_R = .1
                 wcv.desiredWV_L = -.1
                 ref_dist = pathDistance
-                if abs(robot_theta - ref_theta_1) >= pi/4:
+                if abs(robot_theta - ref_theta_1) >= (pi/4 + (10*pi)/180):
                     step_3_case = 3
                 
             #arc left (mainly forward)
@@ -271,7 +273,7 @@ def navi_loop():
                 print "Case 3.3:", (pathDistance - ref_dist)
                 wcv.desiredWV_R = .11
                 wcv.desiredWV_L = .1
-                if (pathDistance - ref_dist) >= 1.3:
+                if (pathDistance - ref_dist) >= 1.5:
                     step_3_case = 4
                 
             #turn to face waiter (cv x between 0 & 590, y between 0 & 440, z in meters)
@@ -288,9 +290,9 @@ def navi_loop():
                         is_waiter_here[0] = True
                     elif 100 <= waiter_x < 200 and is_waiter_here[0]:
                         is_waiter_here[1] = True
-                    elif 200 <= waiter_x < 300 and is_waiter_here[1]:
+                    elif 200 <= waiter_x < 280 and is_waiter_here[1]:
                         is_waiter_here[2] = True
-                    elif 300 <= waiter_x and is_waiter_here[2]: #need to add case for if there's an old value stored
+                    elif 280 <= waiter_x and is_waiter_here[2]: #need to add case for if there's an old value stored
                             step_3_case = 5
                     
                     wcv.desiredWV_R = .1
@@ -350,7 +352,7 @@ def navi_loop():
             else:
                 robot_position2d  = robot_pose3d[0:2]
                 target_position2d = target_pose2d[0:2]
-                pos_delta = (np.array(target_position2d) - np.array(robot_position2d))#*tag_scale
+                pos_delta = (np.array(target_position2d) - np.array(robot_position2d))
                 print robot_pose3d, pos_delta
                 
     
