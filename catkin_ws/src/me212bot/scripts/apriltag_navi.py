@@ -74,7 +74,7 @@ def apriltag_callback(data):
     global tag_id
     # use apriltag pose detection to find where is the robot
     for detection in data.detections:
-        if detection.id == 4:   # pizza station tag id
+        if detection.id == 2:   # pizza station tag id
             tag_id = 2
             poselist_tag_cam = pose2poselist(detection.pose)
             poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
@@ -90,8 +90,9 @@ def apriltag_callback(data):
             poselist_base_map = transformPose(lr, poselist_base_tag, 'apriltag', 'map')
             pubFrame(br, pose = poselist_base_map, frame_id = '/robot_base', parent_frame_id = '/map')
             
-        elif detection.id == 0 and step == 3:   #  tag id
+        elif detection.id == 0:   #  tag id
             tag_id = 0
+            #print "Tag 0 detected"
             poselist_tag_cam = pose2poselist(detection.pose)
             poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
             poselist_base_tag = invPoselist(poselist_tag_base)
@@ -160,7 +161,7 @@ def navi_loop():
     
     ref_theta_1 = robot_theta
     
-    #dist_to_table = pathDistance #for testing step 3
+    dist_to_table = pathDistance #for testing step 3
     
     while not rospy.is_shutdown() :
         #~ try:
@@ -273,16 +274,13 @@ def navi_loop():
             #arc left (mainly forward)
             elif step_3_case == 3:
                 print "Case 3.3:", (pathDistance - ref_dist)
-                wcv.desiredWV_R = .11
+                wcv.desiredWV_R = .115
                 wcv.desiredWV_L = .1
                 if (pathDistance - ref_dist) >= 1.5:
-                	#finding the ideal angle relative to tag 0
-                	if robot_pose3d:
-                		robot_yaw = tfm.euler_from_quaternion(robot_pose3d[3:7]) [2]
-                		print robot_yaw
-                	else:
-                		print "tag not in view"
-                    #step_3_case = 4
+                    #ideal angle relative to tag 0 is -3.1
+                    #ideal x relative to waiter is 230
+                    step_3_case = 4
+
                 
             #turn to face waiter (cv x between 0 & 590, y between 0 & 440, z in meters)
             elif step_3_case == 4:
@@ -296,11 +294,11 @@ def navi_loop():
                     print waiter_x, waiter_y, waiter_z
                     if waiter_x < 100:
                         is_waiter_here[0] = True
-                    elif 100 <= waiter_x < 200 and is_waiter_here[0]:
+                    elif 100 <= waiter_x < 170 and is_waiter_here[0]:
                         is_waiter_here[1] = True
-                    elif 200 <= waiter_x < 280 and is_waiter_here[1]:
+                    elif 170 <= waiter_x < 230 and is_waiter_here[1]:
                         is_waiter_here[2] = True
-                    elif 280 <= waiter_x and is_waiter_here[2]: #need to add case for if there's an old value stored
+                    elif 230 <= waiter_x and is_waiter_here[2]: #need to add case for if there's an old value stored
                             step_3_case = 5
                     
                     wcv.desiredWV_R = .1
