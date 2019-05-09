@@ -25,14 +25,14 @@ br = tf.TransformBroadcaster()
 tag_id = None
 tag_scale = 3/7
 step = 0
-
+delta_ready = False
     
 def main():
     apriltag_sub = rospy.Subscriber("/apriltags/detections", AprilTagDetections, apriltag_callback, queue_size = 1)
-    #step_sub = rospy.Subscriber('/mobile_step', int32, step_callback, queue_size = 1)
     odom_sub = rospy.Subscriber('/odom', Pose, odom_callback, queue_size = 1)
     distance_sub = rospy.Subscriber('/distance', Float32, distance_callback, queue_size = 1)
     object_sub = rospy.Subscriber('/object_position', Point, object_callback, queue_size = 10)
+    step_sub = rospy.Subscriber('/delta_moved_pizza', Bool, delta_ready_callback)
     rospy.sleep(1)
     
     constant_vel = False
@@ -58,6 +58,7 @@ def constant_vel_loop():
         velcmd_pub.publish(wcv) 
         print wcv.desiredWV_R, wcv.desiredWV_L
         rate.sleep()
+
 def shutdown():
     wcv.desiredWV_R = 0.0  
     wcv.desiredWV_L = 0.0
@@ -90,14 +91,14 @@ def apriltag_callback(data):
             poselist_base_map = transformPose(lr, poselist_base_tag, 'apriltag', 'map')
             pubFrame(br, pose = poselist_base_map, frame_id = '/robot_base', parent_frame_id = '/map')
             
-        elif detection.id == 0:   #  tag id
-            tag_id = 0
-            #print "Tag 0 detected"
-            poselist_tag_cam = pose2poselist(detection.pose)
-            poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
-            poselist_base_tag = invPoselist(poselist_tag_base)
-            poselist_base_map = transformPose(lr, poselist_base_tag, 'apriltag', 'map')
-            pubFrame(br, pose = poselist_base_map, frame_id = '/robot_base', parent_frame_id = '/map')
+        # elif detection.id == 0:   #  tag id
+        #     tag_id = 0
+        #     #print "Tag 0 detected"
+        #     poselist_tag_cam = pose2poselist(detection.pose)
+        #     poselist_tag_base = transformPose(lr, poselist_tag_cam, 'camera', 'robot_base')
+        #     poselist_base_tag = invPoselist(poselist_tag_base)
+        #     poselist_base_map = transformPose(lr, poselist_base_tag, 'apriltag', 'map')
+        #     pubFrame(br, pose = poselist_base_map, frame_id = '/robot_base', parent_frame_id = '/map')
 
 def odom_callback(data):
     global robot_x 
@@ -129,10 +130,9 @@ def object_callback(data):
     #print 'Received object (x, y, z):', waiter_x, waiter_y, waiter_z
 
 
-def step_callback(data):
-    global step
-    step = data.data
-    #print 'Received step:', step
+def delta_ready_callback(data):
+    global delta_ready
+    delta_ready = data.data
 
 
 def navi_loop():
@@ -238,12 +238,12 @@ def navi_loop():
                         wcv.desiredWV_R = 0.1
                         wcv.desiredWV_L = -0.1
         
-        #wait at pizza station until next step for at most 10 seconds
+        #wait at pizza station until next step for at most 2 seconds
         if step == 2:
             if not step_2_start:
                 step_2_start = time.time()
                 
-            if (time.time() < step_2_start + 2):
+            if (time.time() < step_2_start + 2): #not delta_ready
                 wcv.desiredWV_R = 0.0  
                 wcv.desiredWV_L = 0.0
             else:
@@ -427,10 +427,9 @@ def navi_loop():
                         wcv.desiredWV_R = 0.1
                         wcv.desiredWV_L = -0.1
 
-            
+        mobile_ready_pub.publish(Bool(arrived)) #publish if mobile has arrived
         #print 'Publishing Velocity:', wcv.desiredWV_R, wcv.desiredWV_L
         velcmd_pub.publish(wcv)
-        mobile_ready_pub.publish(Bool(arrived)) #publish if mobile has arrived
         rate.sleep()
 
 if __name__=='__main__':
