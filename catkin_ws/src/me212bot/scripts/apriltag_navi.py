@@ -243,7 +243,7 @@ def navi_loop():
             if not step_2_start:
                 step_2_start = time.time()
                 
-            if not delta_ready:
+            if not delta_ready and abs(time.time() - step_2_start) > 2:
                 wcv.desiredWV_R = 0.0  
                 wcv.desiredWV_L = 0.0
             else:
@@ -276,7 +276,7 @@ def navi_loop():
             #arc left (mainly forward)
             elif step_3_case == 3:
                 print "Case 3.3:", (pathDistance - ref_dist)
-                wcv.desiredWV_R = .115
+                wcv.desiredWV_R = .11
                 wcv.desiredWV_L = .1
                 if (pathDistance - ref_dist) >= 1.5:
                     #ideal angle relative to tag 0 is -3.1
@@ -294,13 +294,13 @@ def navi_loop():
                 #check position of the waiter
                 try:
                     print waiter_x, waiter_y, waiter_z
-                    if waiter_x < 100:
+                    if waiter_x < 90:
                         is_waiter_here[0] = True
-                    elif 100 <= waiter_x < 170 and is_waiter_here[0]:
+                    elif 90 <= waiter_x < 160 and is_waiter_here[0]:
                         is_waiter_here[1] = True
-                    elif 170 <= waiter_x < 230 and is_waiter_here[1]:
+                    elif 160 <= waiter_x < 220 and is_waiter_here[1]:
                         is_waiter_here[2] = True
-                    elif 230 <= waiter_x and is_waiter_here[2]: #need to add case for if there's an old value stored
+                    elif 220 <= waiter_x and is_waiter_here[2]: #need to add case for if there's an old value stored
                             step_3_case = 5
                     
                     wcv.desiredWV_R = .1
@@ -353,8 +353,8 @@ def navi_loop():
         if step == 5:
             target_pose2d = [0, 0, np.pi]
             if not robot_pose3d: #turn left
-                wcv.desiredWV_R = (0.1+.05) if (step5_tag3_detected or (pathDistance - ref_dist > .7)) else 0.1
-                wcv.desiredWV_L = (-0.1+.05) if (step5_tag3_detected or (pathDistance - ref_dist > .7)) else 0.1 
+                wcv.desiredWV_R = (0.1+.05) if step5_tag3_detected else 0.1
+                wcv.desiredWV_L = (-0.1+.05) if step5_tag3_detected else 0.1 
                 print 'Case 5.1 Tag not in view'
             
             else:
