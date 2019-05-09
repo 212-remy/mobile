@@ -353,8 +353,8 @@ def navi_loop():
         if step == 5:
             target_pose2d = [0, 0, np.pi]
             if not robot_pose3d: #turn left
-                wcv.desiredWV_R = (0.1+.05) if step5_tag3_detected else 0.1
-                wcv.desiredWV_L = (-0.1+.05) if step5_tag3_detected else 0.1 
+                wcv.desiredWV_R = (0.1+.05) if (step5_tag3_detected or (pathDistance - ref_dist > .7)) else 0.1
+                wcv.desiredWV_L = (-0.1+.05) if (step5_tag3_detected or (pathDistance - ref_dist > .7)) else 0.1 
                 print 'Case 5.1 Tag not in view'
             
             else:
