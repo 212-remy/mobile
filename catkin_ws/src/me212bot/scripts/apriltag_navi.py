@@ -22,6 +22,7 @@ b = (0.45/2) #robot width
 rospy.init_node('apriltag_navi', anonymous=True)
 lr = tf.TransformListener()
 br = tf.TransformBroadcaster()
+b = 2
 tag_id = None
 tag_scale = 3/7
 step = 0
@@ -243,7 +244,7 @@ def navi_loop():
             if not step_2_start:
                 step_2_start = time.time()
                 
-            if not delta_ready and abs(time.time() - step_2_start) > 2:
+            if not delta_ready and abs(time.time() - step_2_start) < 60:
                 wcv.desiredWV_R = 0.0  
                 wcv.desiredWV_L = 0.0
             else:
@@ -259,7 +260,7 @@ def navi_loop():
             if step_3_case == 1:  
                 print "Case 3.1:", table_to_waiter
                 K = 0
-                wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(-0.1, K)
+                wcv.desiredWV_R, wcv.desiredWV_L = get_desiredWV(-0.1*b, K)
                 ref_theta_1 = robot_theta
                 if (table_to_waiter >= 0.5):
                     step_3_case = 2
@@ -267,8 +268,8 @@ def navi_loop():
             #turn left
             elif step_3_case == 2:
                 print "Case 3.2:", abs(robot_theta - ref_theta_1)
-                wcv.desiredWV_R = .1
-                wcv.desiredWV_L = -.1
+                wcv.desiredWV_R = .1*b
+                wcv.desiredWV_L = -.1*b
                 ref_dist = pathDistance
                 if abs(robot_theta - ref_theta_1) >= (pi/4) + (10*pi)/180:
                     step_3_case = 3
@@ -276,8 +277,8 @@ def navi_loop():
             #arc left (mainly forward)
             elif step_3_case == 3:
                 print "Case 3.3:", (pathDistance - ref_dist)
-                wcv.desiredWV_R = .11
-                wcv.desiredWV_L = .1
+                wcv.desiredWV_R = .11*1.5
+                wcv.desiredWV_L = .1*1.5
                 if (pathDistance - ref_dist) >= 1.5:
                     #ideal angle relative to tag 0 is -3.1
                     #ideal x relative to waiter is 230
@@ -303,12 +304,12 @@ def navi_loop():
                     elif 220 <= waiter_x and is_waiter_here[2]: #need to add case for if there's an old value stored
                             step_3_case = 5
                     
-                    wcv.desiredWV_R = .1
-                    wcv.desiredWV_L = -.1
+                    wcv.desiredWV_R = .1*b
+                    wcv.desiredWV_L = -.1*b
 
                 except:
-                        wcv.desiredWV_R = .1
-                        wcv.desiredWV_L = -.1
+                        wcv.desiredWV_R = .1*b
+                        wcv.desiredWV_L = -.1*b
                         print "waiter not in view"
                 
             #stop in front of waiter 
@@ -353,8 +354,8 @@ def navi_loop():
         if step == 5:
             target_pose2d = [0, 0, np.pi]
             if not robot_pose3d: #turn left
-                wcv.desiredWV_R = (0.1+.05) if step5_tag3_detected else 0.1
-                wcv.desiredWV_L = (-0.1+.05) if step5_tag3_detected else 0.1 
+                wcv.desiredWV_R = (0.1+.05) if step5_tag3_detected else 0.1*b
+                wcv.desiredWV_L = (-0.1+.05) if step5_tag3_detected else 0.1*b
                 print 'Case 5.1 Tag not in view'
             
             else:
