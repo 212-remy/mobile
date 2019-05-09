@@ -136,6 +136,7 @@ def step_callback(data):
 
 
 def navi_loop():
+    rospy.loginfo("I am alive. Please feed me.")
     step5_tag3_detected = False
     rospy.on_shutdown(shutdown)
     velcmd_pub = rospy.Publisher("/cmdvel", WheelCmdVel, queue_size = 1)
@@ -164,6 +165,7 @@ def navi_loop():
     dist_to_table = pathDistance #for testing step 3
     
     while not rospy.is_shutdown() :
+        rospy.loginfo("in main loop")
         #~ try:
             #~ #print robot_x, robot_y, robot_theta, 'robot'
             #~ #print waiter_x, waiter_y, waiter_z, 'object'
